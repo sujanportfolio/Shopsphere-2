@@ -1,37 +1,73 @@
-'use strict'
+'use strict';
 
-// Note: this is the semver.org version of the spec that it implements
-// Not necessarily the package version of this code.
-const SEMVER_SPEC_VERSION = '2.0.0'
+/*!
+ * ignore
+ */
 
-const MAX_LENGTH = 256
-const MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER ||
-/* istanbul ignore next */ 9007199254740991
+const queryOperations = Object.freeze([
+  // Read
+  'countDocuments',
+  'distinct',
+  'estimatedDocumentCount',
+  'find',
+  'findOne',
+  // Update
+  'findOneAndReplace',
+  'findOneAndUpdate',
+  'replaceOne',
+  'updateMany',
+  'updateOne',
+  // Delete
+  'deleteMany',
+  'deleteOne',
+  'findOneAndDelete'
+]);
 
-// Max safe segment length for coercion.
-const MAX_SAFE_COMPONENT_LENGTH = 16
+exports.queryOperations = queryOperations;
 
-// Max safe length for a build identifier. The max length minus 6 characters for
-// the shortest version with a build 0.0.0+BUILD.
-const MAX_SAFE_BUILD_LENGTH = MAX_LENGTH - 6
+/*!
+ * ignore
+ */
 
-const RELEASE_TYPES = [
-  'major',
-  'premajor',
-  'minor',
-  'preminor',
-  'patch',
-  'prepatch',
-  'prerelease',
-]
+const queryMiddlewareFunctions = queryOperations.concat([
+  'validate'
+]);
 
-module.exports = {
-  MAX_LENGTH,
-  MAX_SAFE_COMPONENT_LENGTH,
-  MAX_SAFE_BUILD_LENGTH,
-  MAX_SAFE_INTEGER,
-  RELEASE_TYPES,
-  SEMVER_SPEC_VERSION,
-  FLAG_INCLUDE_PRERELEASE: 0b001,
-  FLAG_LOOSE: 0b010,
-}
+exports.queryMiddlewareFunctions = queryMiddlewareFunctions;
+
+/*!
+ * ignore
+ */
+
+const aggregateMiddlewareFunctions = [
+  'aggregate'
+];
+
+exports.aggregateMiddlewareFunctions = aggregateMiddlewareFunctions;
+
+/*!
+ * ignore
+ */
+
+const modelMiddlewareFunctions = [
+  'bulkWrite',
+  'createCollection',
+  'insertMany'
+];
+
+exports.modelMiddlewareFunctions = modelMiddlewareFunctions;
+
+/*!
+ * ignore
+ */
+
+const documentMiddlewareFunctions = [
+  'validate',
+  'save',
+  'remove',
+  'updateOne',
+  'deleteOne',
+  'init'
+];
+
+exports.documentMiddlewareFunctions = documentMiddlewareFunctions;
