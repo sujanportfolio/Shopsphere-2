@@ -1,32 +1,54 @@
-import { ByteUtils } from '../../utils/byte_utils';
-import { NumberUtils } from '../../utils/number_utils';
-import { type BSONElement, parseToElements } from './parse_to_elements';
-/**
- * @experimental
- * @public
- *
- * A new set of BSON APIs that are currently experimental and not intended for production use.
- */
-export type OnDemand = {
-  parseToElements: (this: void, bytes: Uint8Array, startOffset?: number) => Iterable<BSONElement>;
-  // Types
-  BSONElement: BSONElement;
+import * as defaultOperations from "./operations";
+import {
+  Query,
+  QueryOperators,
+  BasicValueQuery,
+  ArrayValueQuery,
+  ValueQuery,
+  NestedQuery,
+  ShapeQuery,
+  Options,
+  createQueryTester,
+  EqualsOperation,
+  createQueryOperation,
+  createEqualsOperation,
+  createOperationTester,
+} from "./core";
 
-  // Utils
-  ByteUtils: ByteUtils;
-  NumberUtils: NumberUtils;
+const createDefaultQueryOperation = <TItem, TSchema extends TItem = TItem>(
+  query: Query<TSchema>,
+  ownerQuery: any,
+  { compare, operations }: Partial<Options> = {},
+) => {
+  return createQueryOperation(query, ownerQuery, {
+    compare,
+    operations: Object.assign({}, defaultOperations, operations || {}),
+  });
 };
 
-/**
- * @experimental
- * @public
- */
-const onDemand: OnDemand = Object.create(null);
+const createDefaultQueryTester = <TItem, TSchema extends TItem = TItem>(
+  query: Query<TSchema>,
+  options: Partial<Options> = {},
+) => {
+  const op = createDefaultQueryOperation(query, null, options);
+  return createOperationTester(op);
+};
 
-onDemand.parseToElements = parseToElements;
-onDemand.ByteUtils = ByteUtils;
-onDemand.NumberUtils = NumberUtils;
+export {
+  Query,
+  QueryOperators,
+  BasicValueQuery,
+  ArrayValueQuery,
+  ValueQuery,
+  NestedQuery,
+  ShapeQuery,
+  EqualsOperation,
+  createQueryTester,
+  createOperationTester,
+  createDefaultQueryOperation,
+  createEqualsOperation,
+  createQueryOperation,
+};
+export * from "./operations";
 
-Object.freeze(onDemand);
-
-export { onDemand };
+export default createDefaultQueryTester;

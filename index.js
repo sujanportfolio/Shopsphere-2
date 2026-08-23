@@ -1,23 +1,15 @@
-"use strict"
+'use strict';
 
-var mergeModules = require("../lib/helpers/merge-exports")
+var bind = require('function-bind');
+var $TypeError = require('es-errors/type');
 
-// Update this array if you add/rename/remove files in this directory.
-// We support Browserify by skipping automatic module discovery and requiring modules directly.
-var modules = [
-  require("./internal"),
-  require("./utf32"),
-  require("./utf16"),
-  require("./utf7"),
-  require("./sbcs-codec"),
-  require("./sbcs-data"),
-  require("./sbcs-data-generated"),
-  require("./dbcs-codec"),
-  require("./dbcs-data")
-]
+var $call = require('./functionCall');
+var $actualApply = require('./actualApply');
 
-// Put all encoding/alias/codec definitions to single object and export it.
-for (var i = 0; i < modules.length; i++) {
-  var module = modules[i]
-  mergeModules(exports, module)
-}
+/** @type {(args: [Function, thisArg?: unknown, ...args: unknown[]]) => Function} TODO FIXME, find a way to use import('.') */
+module.exports = function callBindBasic(args) {
+	if (args.length < 1 || typeof args[0] !== 'function') {
+		throw new $TypeError('a function is required');
+	}
+	return $actualApply(bind, $call, args);
+};

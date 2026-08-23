@@ -1,280 +1,58 @@
 'use strict';
 
-/*!
- * Module dependencies.
- */
+var inspect = require('../');
+var test = require('tape');
+var hasToStringTag = require('has-tostringtag/shams')();
 
-const CastError = require('../error/cast');
-const SchemaType = require('../schemaType');
-const castBigInt = require('../cast/bigint');
+test('bigint', { skip: typeof BigInt === 'undefined' }, function (t) {
+    t.test('primitives', function (st) {
+        st.plan(3);
 
-/**
- * BigInt SchemaType constructor.
- *
- * @param {string} path
- * @param {object} options
- * @param {object} schemaOptions
- * @param {Schema} parentSchema
- * @inherits SchemaType
- * @api public
- */
+        st.equal(inspect(BigInt(-256)), '-256n');
+        st.equal(inspect(BigInt(0)), '0n');
+        st.equal(inspect(BigInt(256)), '256n');
+    });
 
-function SchemaBigInt(path, options, _schemaOptions, parentSchema) {
-  SchemaType.call(this, path, options, 'BigInt', parentSchema);
-}
+    t.test('objects', function (st) {
+        st.plan(3);
 
-/**
- * This schema type's name, to defend against minifiers that mangle
- * function names.
- *
- * @api public
- */
-SchemaBigInt.schemaName = 'BigInt';
+        st.equal(inspect(Object(BigInt(-256))), 'Object(-256n)');
+        st.equal(inspect(Object(BigInt(0))), 'Object(0n)');
+        st.equal(inspect(Object(BigInt(256))), 'Object(256n)');
+    });
 
-SchemaBigInt.defaultOptions = {};
+    t.test('syntactic primitives', function (st) {
+        st.plan(3);
 
-/*!
- * Inherits from SchemaType.
- */
-SchemaBigInt.prototype = Object.create(SchemaType.prototype);
-SchemaBigInt.prototype.constructor = SchemaBigInt;
+        /* eslint-disable no-new-func */
+        st.equal(inspect(Function('return -256n')()), '-256n');
+        st.equal(inspect(Function('return 0n')()), '0n');
+        st.equal(inspect(Function('return 256n')()), '256n');
+    });
 
-/*!
- * ignore
- */
+    t.test('toStringTag', { skip: !hasToStringTag }, function (st) {
+        st.plan(1);
 
-SchemaBigInt._cast = castBigInt;
+        var faker = {};
+        faker[Symbol.toStringTag] = 'BigInt';
+        st.equal(
+            inspect(faker),
+            '{ [Symbol(Symbol.toStringTag)]: \'BigInt\' }',
+            'object lying about being a BigInt inspects as an object'
+        );
+    });
 
-/**
- * Sets a default option for all BigInt instances.
- *
- * #### Example:
- *
- *     // Make all bigints required by default
- *     mongoose.Schema.Types.BigInt.set('required', true);
- *
- * @param {string} option The option you'd like to set the value for
- * @param {any} value value for option
- * @return {undefined}
- * @function set
- * @static
- * @api public
- */
+    t.test('numericSeparator', function (st) {
+        st.equal(inspect(BigInt(0), { numericSeparator: false }), '0n', '0n, numericSeparator false');
+        st.equal(inspect(BigInt(0), { numericSeparator: true }), '0n', '0n, numericSeparator true');
 
-SchemaBigInt.set = SchemaType.set;
+        st.equal(inspect(BigInt(1234), { numericSeparator: false }), '1234n', '1234n, numericSeparator false');
+        st.equal(inspect(BigInt(1234), { numericSeparator: true }), '1_234n', '1234n, numericSeparator true');
+        st.equal(inspect(BigInt(-1234), { numericSeparator: false }), '-1234n', '1234n, numericSeparator false');
+        st.equal(inspect(BigInt(-1234), { numericSeparator: true }), '-1_234n', '1234n, numericSeparator true');
 
-SchemaBigInt.setters = [];
+        st.end();
+    });
 
-/**
- * Attaches a getter for all BigInt instances
- *
- * #### Example:
- *
- *     // Convert bigints to numbers
- *     mongoose.Schema.Types.BigInt.get(v => v == null ? v : Number(v));
- *
- * @param {Function} getter
- * @return {this}
- * @function get
- * @static
- * @api public
- */
-
-SchemaBigInt.get = SchemaType.get;
-
-/**
- * Get/set the function used to cast arbitrary values to bigints.
- *
- * #### Example:
- *
- *     // Make Mongoose cast empty string '' to false.
- *     const original = mongoose.Schema.Types.BigInt.cast();
- *     mongoose.Schema.Types.BigInt.cast(v => {
- *       if (v === '') {
- *         return false;
- *       }
- *       return original(v);
- *     });
- *
- *     // Or disable casting entirely
- *     mongoose.Schema.Types.BigInt.cast(false);
- *
- * @param {Function} caster
- * @return {Function}
- * @function cast
- * @static
- * @api public
- */
-
-SchemaBigInt.cast = function cast(caster) {
-  if (arguments.length === 0) {
-    return this._cast;
-  }
-  if (caster === false) {
-    caster = this._defaultCaster;
-  }
-  this._cast = caster;
-
-  return this._cast;
-};
-
-/*!
- * ignore
- */
-
-SchemaBigInt._checkRequired = v => v != null;
-
-/**
- * Override the function the required validator uses to check whether a value
- * passes the `required` check.
- *
- * @param {Function} fn
- * @return {Function}
- * @function checkRequired
- * @static
- * @api public
- */
-
-SchemaBigInt.checkRequired = SchemaType.checkRequired;
-
-/**
- * Check if the given value satisfies a required validator.
- *
- * @param {any} value
- * @return {boolean}
- * @api public
- */
-
-SchemaBigInt.prototype.checkRequired = function(value) {
-  return this.constructor._checkRequired(value);
-};
-
-/**
- * Casts to bigint
- *
- * @param {object} value
- * @param {object} model this value is optional
- * @api private
- */
-
-SchemaBigInt.prototype.cast = function(value) {
-  let castBigInt;
-  if (typeof this._castFunction === 'function') {
-    castBigInt = this._castFunction;
-  } else if (typeof this.constructor.cast === 'function') {
-    castBigInt = this.constructor.cast();
-  } else {
-    castBigInt = SchemaBigInt.cast();
-  }
-
-  try {
-    return castBigInt(value);
-  } catch (error) {
-    throw new CastError('BigInt', value, this.path, error, this);
-  }
-};
-
-/*!
- * ignore
- */
-
-const $conditionalHandlers = {
-  ...SchemaType.prototype.$conditionalHandlers,
-  $gt: handleSingle,
-  $gte: handleSingle,
-  $lt: handleSingle,
-  $lte: handleSingle
-};
-
-/**
- * Contains the handlers for different query operators for this schema type.
- * For example, `$conditionalHandlers.$in` is the function Mongoose calls to cast `$in` filter operators.
- *
- * @property $conditionalHandlers
- * @memberOf SchemaBigInt
- * @instance
- * @api public
- */
-
-Object.defineProperty(SchemaBigInt.prototype, '$conditionalHandlers', {
-  enumerable: false,
-  value: $conditionalHandlers
+    t.end();
 });
-
-/*!
- * ignore
- */
-
-function handleSingle(val, context) {
-  return this.castForQuery(null, val, context);
-}
-
-/**
- * Casts contents for queries.
- *
- * @param {string} $conditional
- * @param {any} val
- * @api private
- */
-
-SchemaBigInt.prototype.castForQuery = function($conditional, val, context) {
-  let handler;
-  if ($conditional != null) {
-    handler = this.$conditionalHandlers[$conditional];
-
-    if (handler) {
-      return handler.call(this, val);
-    }
-
-    return this.applySetters(val, context);
-  }
-
-  try {
-    return this.applySetters(val, context);
-  } catch (err) {
-    if (err instanceof CastError && err.path === this.path && this.$fullPath != null) {
-      err.path = this.$fullPath;
-    }
-    throw err;
-  }
-};
-
-/**
- *
- * @api private
- */
-
-SchemaBigInt.prototype._castNullish = function _castNullish(v) {
-  if (typeof v === 'undefined') {
-    return v;
-  }
-  const castBigInt = typeof this.constructor.cast === 'function' ?
-    this.constructor.cast() :
-    SchemaBigInt.cast();
-  if (castBigInt == null) {
-    return v;
-  }
-  return v;
-};
-
-/**
- * Returns this schema type's representation in a JSON schema.
- *
- * @param {object} [options]
- * @param {boolean} [options.useBsonType=false] If true, return a representation with `bsonType` for use with MongoDB's `$jsonSchema`.
- * @returns {object} JSON schema properties
- */
-
-SchemaBigInt.prototype.toJSONSchema = function toJSONSchema(options) {
-  return this._createJSONSchemaTypeDefinition('string', 'long', options);
-};
-
-SchemaBigInt.prototype.autoEncryptionType = function autoEncryptionType() {
-  return 'long';
-};
-
-/*!
- * Module exports.
- */
-
-module.exports = SchemaBigInt;

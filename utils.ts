@@ -1,69 +1,74 @@
-const TypedArrayPrototypeGetSymbolToStringTag = (() => {
-  // Type check system lovingly referenced from:
-  // https://github.com/nodejs/node/blob/7450332339ed40481f470df2a3014e2ec355d8d8/lib/internal/util/types.js#L13-L15
-  // eslint-disable-next-line @typescript-eslint/unbound-method -- the intention is to call this method with a bound value
-  const g = Object.getOwnPropertyDescriptor(
-    Object.getPrototypeOf(Uint8Array.prototype),
-    Symbol.toStringTag
-  )!.get!;
+export type Key = string | number;
+export type Comparator = (a, b) => boolean;
+export const typeChecker = <TType>(type) => {
+  const typeString = "[object " + type + "]";
+  return function (value): value is TType {
+    return getClassName(value) === typeString;
+  };
+};
 
-  return (value: unknown) => g.call(value);
-})();
+const getClassName = (value) => Object.prototype.toString.call(value);
 
-export function isUint8Array(value: unknown): value is Uint8Array {
-  return TypedArrayPrototypeGetSymbolToStringTag(value) === 'Uint8Array';
-}
-
-export function isAnyArrayBuffer(value: unknown): value is ArrayBuffer {
-  return (
-    typeof value === 'object' &&
-    value != null &&
-    Symbol.toStringTag in value &&
-    (value[Symbol.toStringTag] === 'ArrayBuffer' ||
-      value[Symbol.toStringTag] === 'SharedArrayBuffer')
-  );
-}
-
-export function isRegExp(regexp: unknown): regexp is RegExp {
-  return regexp instanceof RegExp || Object.prototype.toString.call(regexp) === '[object RegExp]';
-}
-
-export function isMap(value: unknown): value is Map<unknown, unknown> {
-  return (
-    typeof value === 'object' &&
-    value != null &&
-    Symbol.toStringTag in value &&
-    value[Symbol.toStringTag] === 'Map'
-  );
-}
-
-export function isDate(date: unknown): date is Date {
-  return date instanceof Date || Object.prototype.toString.call(date) === '[object Date]';
-}
-
-export type InspectFn = (x: unknown, options?: unknown) => string;
-export function defaultInspect(x: unknown, _options?: unknown): string {
-  return JSON.stringify(x, (k: string, v: unknown) => {
-    if (typeof v === 'bigint') {
-      return { $numberLong: `${v}` };
-    } else if (isMap(v)) {
-      return Object.fromEntries(v);
-    }
-    return v;
-  });
-}
-
-/** @internal */
-type StylizeFunction = (x: string, style: string) => string;
-/** @internal */
-export function getStylizeFunction(options?: unknown): StylizeFunction | undefined {
-  const stylizeExists =
-    options != null &&
-    typeof options === 'object' &&
-    'stylize' in options &&
-    typeof options.stylize === 'function';
-
-  if (stylizeExists) {
-    return options.stylize as StylizeFunction;
+export const comparable = (value: any) => {
+  if (value instanceof Date) {
+    return value.getTime();
+  } else if (isArray(value)) {
+    return value.map(comparable);
+  } else if (value && typeof value.toJSON === "function") {
+    return value.toJSON();
   }
-}
+
+  return value;
+};
+
+export const coercePotentiallyNull = (value: any) =>
+  value == null ? null : value;
+
+export const isArray = typeChecker<Array<any>>("Array");
+export const isObject = typeChecker<Object>("Object");
+export const isFunction = typeChecker<Function>("Function");
+export const isProperty = (item: any, key: any) => {
+  return item.hasOwnProperty(key) && !isFunction(item[key]);
+};
+export const isVanillaObject = (value) => {
+  return (
+    value &&
+    (value.constructor === Object ||
+      value.constructor === Array ||
+      value.constructor.toString() === "function Object() { [native code] }" ||
+      value.constructor.toString() === "function Array() { [native code] }") &&
+    !value.toJSON
+  );
+};
+
+export const equals = (a, b) => {
+  if (a == null && a == b) {
+    return true;
+  }
+  if (a === b) {
+    return true;
+  }
+
+  if (Object.prototype.toString.call(a) !== Object.prototype.toString.call(b)) {
+    return false;
+  }
+
+  if (isArray(a)) {
+    if (a.length !== b.length) {
+      return false;
+    }
+    for (let i = 0, { length } = a; i < length; i++) {
+      if (!equals(a[i], b[i])) return false;
+    }
+    return true;
+  } else if (isObject(a)) {
+    if (Object.keys(a).length !== Object.keys(b).length) {
+      return false;
+    }
+    for (const key in a) {
+      if (!equals(a[key], b[key])) return false;
+    }
+    return true;
+  }
+  return false;
+};
