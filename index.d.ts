@@ -1,3 +1,3 @@
-declare function hasNativeSymbols(): boolean;
+declare const defineProperty: false | typeof Object.defineProperty;
 
-export = hasNativeSymbols;
+export = defineProperty;

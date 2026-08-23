@@ -1,127 +1,292 @@
-'use strict';
 
-/*!
- * Module dependencies.
+/**
+ * This is the common logic for both the Node.js and web browser
+ * implementations of `debug()`.
  */
 
-const Binary = require('mongodb/lib/bson').Binary;
-const isBsonType = require('./isBsonType');
-const isMongooseObject = require('./isMongooseObject');
-const MongooseError = require('../error');
-const util = require('util');
+function setup(env) {
+	createDebug.debug = createDebug;
+	createDebug.default = createDebug;
+	createDebug.coerce = coerce;
+	createDebug.disable = disable;
+	createDebug.enable = enable;
+	createDebug.enabled = enabled;
+	createDebug.humanize = require('ms');
+	createDebug.destroy = destroy;
 
-exports.flatten = flatten;
-exports.modifiedPaths = modifiedPaths;
+	Object.keys(env).forEach(key => {
+		createDebug[key] = env[key];
+	});
 
-/*!
- * ignore
- */
+	/**
+	* The currently active debug mode names, and names to skip.
+	*/
 
-function flatten(update, path, options, schema) {
-  let keys;
-  if (update && isMongooseObject(update) && !Buffer.isBuffer(update)) {
-    keys = Object.keys(update.toObject({ transform: false, virtuals: false }) || {});
-  } else {
-    keys = Object.keys(update || {});
-  }
+	createDebug.names = [];
+	createDebug.skips = [];
 
-  const numKeys = keys.length;
-  const result = {};
-  path = path ? path + '.' : '';
+	/**
+	* Map of special "%n" handling functions, for the debug "format" argument.
+	*
+	* Valid key names are a single, lower or upper-case letter, i.e. "n" and "N".
+	*/
+	createDebug.formatters = {};
 
-  for (let i = 0; i < numKeys; ++i) {
-    const key = keys[i];
-    const val = update[key];
-    result[path + key] = val;
+	/**
+	* Selects a color for a debug namespace
+	* @param {String} namespace The namespace string for the debug instance to be colored
+	* @return {Number|String} An ANSI color code for the given namespace
+	* @api private
+	*/
+	function selectColor(namespace) {
+		let hash = 0;
 
-    // Avoid going into mixed paths if schema is specified
-    const keySchema = schema?.path?.(path + key);
-    const isNested = schema?.nested?.[path + key];
-    if (keySchema?.instance === 'Mixed') continue;
+		for (let i = 0; i < namespace.length; i++) {
+			hash = ((hash << 5) - hash) + namespace.charCodeAt(i);
+			hash |= 0; // Convert to 32bit integer
+		}
 
-    if (shouldFlatten(val)) {
-      if (options?.skipArrays && Array.isArray(val)) {
-        continue;
-      }
-      const flat = flatten(val, path + key, options, schema);
-      for (const k in flat) {
-        result[k] = flat[k];
-      }
-      if (Array.isArray(val)) {
-        result[path + key] = val;
-      }
-    }
+		return createDebug.colors[Math.abs(hash) % createDebug.colors.length];
+	}
+	createDebug.selectColor = selectColor;
 
-    if (isNested) {
-      const paths = Object.keys(schema.paths);
-      for (const p of paths) {
-        if (p.startsWith(path + key + '.') && !Object.hasOwn(result, p)) {
-          result[p] = void 0;
-        }
-      }
-    }
-  }
+	/**
+	* Create a debugger with the given `namespace`.
+	*
+	* @param {String} namespace
+	* @return {Function}
+	* @api public
+	*/
+	function createDebug(namespace) {
+		let prevTime;
+		let enableOverride = null;
+		let namespacesCache;
+		let enabledCache;
 
-  return result;
+		function debug(...args) {
+			// Disabled?
+			if (!debug.enabled) {
+				return;
+			}
+
+			const self = debug;
+
+			// Set `diff` timestamp
+			const curr = Number(new Date());
+			const ms = curr - (prevTime || curr);
+			self.diff = ms;
+			self.prev = prevTime;
+			self.curr = curr;
+			prevTime = curr;
+
+			args[0] = createDebug.coerce(args[0]);
+
+			if (typeof args[0] !== 'string') {
+				// Anything else let's inspect with %O
+				args.unshift('%O');
+			}
+
+			// Apply any `formatters` transformations
+			let index = 0;
+			args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format) => {
+				// If we encounter an escaped % then don't increase the array index
+				if (match === '%%') {
+					return '%';
+				}
+				index++;
+				const formatter = createDebug.formatters[format];
+				if (typeof formatter === 'function') {
+					const val = args[index];
+					match = formatter.call(self, val);
+
+					// Now we need to remove `args[index]` since it's inlined in the `format`
+					args.splice(index, 1);
+					index--;
+				}
+				return match;
+			});
+
+			// Apply env-specific formatting (colors, etc.)
+			createDebug.formatArgs.call(self, args);
+
+			const logFn = self.log || createDebug.log;
+			logFn.apply(self, args);
+		}
+
+		debug.namespace = namespace;
+		debug.useColors = createDebug.useColors();
+		debug.color = createDebug.selectColor(namespace);
+		debug.extend = extend;
+		debug.destroy = createDebug.destroy; // XXX Temporary. Will be removed in the next major release.
+
+		Object.defineProperty(debug, 'enabled', {
+			enumerable: true,
+			configurable: false,
+			get: () => {
+				if (enableOverride !== null) {
+					return enableOverride;
+				}
+				if (namespacesCache !== createDebug.namespaces) {
+					namespacesCache = createDebug.namespaces;
+					enabledCache = createDebug.enabled(namespace);
+				}
+
+				return enabledCache;
+			},
+			set: v => {
+				enableOverride = v;
+			}
+		});
+
+		// Env-specific initialization logic for debug instances
+		if (typeof createDebug.init === 'function') {
+			createDebug.init(debug);
+		}
+
+		return debug;
+	}
+
+	function extend(namespace, delimiter) {
+		const newDebug = createDebug(this.namespace + (typeof delimiter === 'undefined' ? ':' : delimiter) + namespace);
+		newDebug.log = this.log;
+		return newDebug;
+	}
+
+	/**
+	* Enables a debug mode by namespaces. This can include modes
+	* separated by a colon and wildcards.
+	*
+	* @param {String} namespaces
+	* @api public
+	*/
+	function enable(namespaces) {
+		createDebug.save(namespaces);
+		createDebug.namespaces = namespaces;
+
+		createDebug.names = [];
+		createDebug.skips = [];
+
+		const split = (typeof namespaces === 'string' ? namespaces : '')
+			.trim()
+			.replace(/\s+/g, ',')
+			.split(',')
+			.filter(Boolean);
+
+		for (const ns of split) {
+			if (ns[0] === '-') {
+				createDebug.skips.push(ns.slice(1));
+			} else {
+				createDebug.names.push(ns);
+			}
+		}
+	}
+
+	/**
+	 * Checks if the given string matches a namespace template, honoring
+	 * asterisks as wildcards.
+	 *
+	 * @param {String} search
+	 * @param {String} template
+	 * @return {Boolean}
+	 */
+	function matchesTemplate(search, template) {
+		let searchIndex = 0;
+		let templateIndex = 0;
+		let starIndex = -1;
+		let matchIndex = 0;
+
+		while (searchIndex < search.length) {
+			if (templateIndex < template.length && (template[templateIndex] === search[searchIndex] || template[templateIndex] === '*')) {
+				// Match character or proceed with wildcard
+				if (template[templateIndex] === '*') {
+					starIndex = templateIndex;
+					matchIndex = searchIndex;
+					templateIndex++; // Skip the '*'
+				} else {
+					searchIndex++;
+					templateIndex++;
+				}
+			} else if (starIndex !== -1) { // eslint-disable-line no-negated-condition
+				// Backtrack to the last '*' and try to match more characters
+				templateIndex = starIndex + 1;
+				matchIndex++;
+				searchIndex = matchIndex;
+			} else {
+				return false; // No match
+			}
+		}
+
+		// Handle trailing '*' in template
+		while (templateIndex < template.length && template[templateIndex] === '*') {
+			templateIndex++;
+		}
+
+		return templateIndex === template.length;
+	}
+
+	/**
+	* Disable debug output.
+	*
+	* @return {String} namespaces
+	* @api public
+	*/
+	function disable() {
+		const namespaces = [
+			...createDebug.names,
+			...createDebug.skips.map(namespace => '-' + namespace)
+		].join(',');
+		createDebug.enable('');
+		return namespaces;
+	}
+
+	/**
+	* Returns true if the given mode name is enabled, false otherwise.
+	*
+	* @param {String} name
+	* @return {Boolean}
+	* @api public
+	*/
+	function enabled(name) {
+		for (const skip of createDebug.skips) {
+			if (matchesTemplate(name, skip)) {
+				return false;
+			}
+		}
+
+		for (const ns of createDebug.names) {
+			if (matchesTemplate(name, ns)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	* Coerce `val`.
+	*
+	* @param {Mixed} val
+	* @return {Mixed}
+	* @api private
+	*/
+	function coerce(val) {
+		if (val instanceof Error) {
+			return val.stack || val.message;
+		}
+		return val;
+	}
+
+	/**
+	* XXX DO NOT USE. This is a temporary stub function.
+	* XXX It WILL be removed in the next major release.
+	*/
+	function destroy() {
+		console.warn('Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.');
+	}
+
+	createDebug.enable(createDebug.load());
+
+	return createDebug;
 }
 
-/*!
- * ignore
- */
-
-function modifiedPaths(update, path, result, recursion = null) {
-  if (update == null || typeof update !== 'object') {
-    return;
-  }
-
-  if (recursion == null) {
-    recursion = {
-      raw: { update, path },
-      trace: new WeakSet()
-    };
-  }
-
-  if (recursion.trace.has(update)) {
-    throw new MongooseError(`a circular reference in the update value, updateValue:
-${util.inspect(recursion.raw.update, { showHidden: false, depth: 1 })}
-updatePath: '${recursion.raw.path}'`);
-  }
-  recursion.trace.add(update);
-
-  const keys = Object.keys(update || {});
-  const numKeys = keys.length;
-  result = result || {};
-  path = path ? path + '.' : '';
-
-  for (let i = 0; i < numKeys; ++i) {
-    const key = keys[i];
-    let val = update[key];
-
-    const _path = path + key;
-    result[_path] = true;
-    if (!Buffer.isBuffer(val) && isMongooseObject(val)) {
-      val = val.toObject({ transform: false, virtuals: false });
-    }
-    if (shouldFlatten(val)) {
-      modifiedPaths(val, path + key, result, recursion);
-    }
-  }
-  recursion.trace.delete(update);
-
-  return result;
-}
-
-/*!
- * ignore
- */
-
-function shouldFlatten(val) {
-  return val &&
-      typeof val === 'object' &&
-      !(val instanceof Date) &&
-      !isBsonType(val, 'ObjectId') &&
-      (!Array.isArray(val) || val.length !== 0) &&
-      !(val instanceof Buffer) &&
-      !isBsonType(val, 'Decimal128') &&
-      !(val instanceof Binary);
-}
+module.exports = setup;
