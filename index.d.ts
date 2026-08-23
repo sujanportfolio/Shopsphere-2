@@ -1,187 +1,129 @@
-declare module "safe-buffer" {
-  export class Buffer {
-    length: number
-    write(string: string, offset?: number, length?: number, encoding?: string): number;
-    toString(encoding?: string, start?: number, end?: number): string;
-    toJSON(): { type: 'Buffer', data: any[] };
-    equals(otherBuffer: Buffer): boolean;
-    compare(otherBuffer: Buffer, targetStart?: number, targetEnd?: number, sourceStart?: number, sourceEnd?: number): number;
-    copy(targetBuffer: Buffer, targetStart?: number, sourceStart?: number, sourceEnd?: number): number;
-    slice(start?: number, end?: number): Buffer;
-    writeUIntLE(value: number, offset: number, byteLength: number, noAssert?: boolean): number;
-    writeUIntBE(value: number, offset: number, byteLength: number, noAssert?: boolean): number;
-    writeIntLE(value: number, offset: number, byteLength: number, noAssert?: boolean): number;
-    writeIntBE(value: number, offset: number, byteLength: number, noAssert?: boolean): number;
-    readUIntLE(offset: number, byteLength: number, noAssert?: boolean): number;
-    readUIntBE(offset: number, byteLength: number, noAssert?: boolean): number;
-    readIntLE(offset: number, byteLength: number, noAssert?: boolean): number;
-    readIntBE(offset: number, byteLength: number, noAssert?: boolean): number;
-    readUInt8(offset: number, noAssert?: boolean): number;
-    readUInt16LE(offset: number, noAssert?: boolean): number;
-    readUInt16BE(offset: number, noAssert?: boolean): number;
-    readUInt32LE(offset: number, noAssert?: boolean): number;
-    readUInt32BE(offset: number, noAssert?: boolean): number;
-    readInt8(offset: number, noAssert?: boolean): number;
-    readInt16LE(offset: number, noAssert?: boolean): number;
-    readInt16BE(offset: number, noAssert?: boolean): number;
-    readInt32LE(offset: number, noAssert?: boolean): number;
-    readInt32BE(offset: number, noAssert?: boolean): number;
-    readFloatLE(offset: number, noAssert?: boolean): number;
-    readFloatBE(offset: number, noAssert?: boolean): number;
-    readDoubleLE(offset: number, noAssert?: boolean): number;
-    readDoubleBE(offset: number, noAssert?: boolean): number;
-    swap16(): Buffer;
-    swap32(): Buffer;
-    swap64(): Buffer;
-    writeUInt8(value: number, offset: number, noAssert?: boolean): number;
-    writeUInt16LE(value: number, offset: number, noAssert?: boolean): number;
-    writeUInt16BE(value: number, offset: number, noAssert?: boolean): number;
-    writeUInt32LE(value: number, offset: number, noAssert?: boolean): number;
-    writeUInt32BE(value: number, offset: number, noAssert?: boolean): number;
-    writeInt8(value: number, offset: number, noAssert?: boolean): number;
-    writeInt16LE(value: number, offset: number, noAssert?: boolean): number;
-    writeInt16BE(value: number, offset: number, noAssert?: boolean): number;
-    writeInt32LE(value: number, offset: number, noAssert?: boolean): number;
-    writeInt32BE(value: number, offset: number, noAssert?: boolean): number;
-    writeFloatLE(value: number, offset: number, noAssert?: boolean): number;
-    writeFloatBE(value: number, offset: number, noAssert?: boolean): number;
-    writeDoubleLE(value: number, offset: number, noAssert?: boolean): number;
-    writeDoubleBE(value: number, offset: number, noAssert?: boolean): number;
-    fill(value: any, offset?: number, end?: number): this;
-    indexOf(value: string | number | Buffer, byteOffset?: number, encoding?: string): number;
-    lastIndexOf(value: string | number | Buffer, byteOffset?: number, encoding?: string): number;
-    includes(value: string | number | Buffer, byteOffset?: number, encoding?: string): boolean;
+/* ---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License.
+ *  REQUIREMENT: This definition is dependent on the @types/node definition.
+ *  Install with `npm install @types/node --save-dev`
+ *-------------------------------------------------------------------------------------------- */
 
+/* ---------------------------------------------------------------------------------------------
+ * This file provides detailed typings for the public API of iconv-lite
+ *-------------------------------------------------------------------------------------------- */
+
+import type Stream = require("stream")
+import type { Encoding } from "../types/encodings"
+
+declare namespace iconv {
+  export interface DecodeOptions {
     /**
-     * Allocates a new buffer containing the given {str}.
-     *
-     * @param str String to store in buffer.
-     * @param encoding encoding to use, optional.  Default is 'utf8'
+     * Strip the Byte Order Mark (BOM) from the input,
+     * when decoding, if the codec is BOM-aware. @default true
      */
-     constructor (str: string, encoding?: string);
-    /**
-     * Allocates a new buffer of {size} octets.
-     *
-     * @param size count of octets to allocate.
-     */
-    constructor (size: number);
-    /**
-     * Allocates a new buffer containing the given {array} of octets.
-     *
-     * @param array The octets to store.
-     */
-    constructor (array: Uint8Array);
-    /**
-     * Produces a Buffer backed by the same allocated memory as
-     * the given {ArrayBuffer}.
-     *
-     *
-     * @param arrayBuffer The ArrayBuffer with which to share memory.
-     */
-    constructor (arrayBuffer: ArrayBuffer);
-    /**
-     * Allocates a new buffer containing the given {array} of octets.
-     *
-     * @param array The octets to store.
-     */
-    constructor (array: any[]);
-    /**
-     * Copies the passed {buffer} data onto a new {Buffer} instance.
-     *
-     * @param buffer The buffer to copy.
-     */
-    constructor (buffer: Buffer);
-    prototype: Buffer;
-    /**
-     * Allocates a new Buffer using an {array} of octets.
-     *
-     * @param array
-     */
-    static from(array: any[]): Buffer;
-    /**
-     * When passed a reference to the .buffer property of a TypedArray instance,
-     * the newly created Buffer will share the same allocated memory as the TypedArray.
-     * The optional {byteOffset} and {length} arguments specify a memory range
-     * within the {arrayBuffer} that will be shared by the Buffer.
-     *
-     * @param arrayBuffer The .buffer property of a TypedArray or a new ArrayBuffer()
-     * @param byteOffset
-     * @param length
-     */
-    static from(arrayBuffer: ArrayBuffer, byteOffset?: number, length?: number): Buffer;
-    /**
-     * Copies the passed {buffer} data onto a new Buffer instance.
-     *
-     * @param buffer
-     */
-    static from(buffer: Buffer): Buffer;
-    /**
-     * Creates a new Buffer containing the given JavaScript string {str}.
-     * If provided, the {encoding} parameter identifies the character encoding.
-     * If not provided, {encoding} defaults to 'utf8'.
-     *
-     * @param str
-     */
-    static from(str: string, encoding?: string): Buffer;
-    /**
-     * Returns true if {obj} is a Buffer
-     *
-     * @param obj object to test.
-     */
-    static isBuffer(obj: any): obj is Buffer;
-    /**
-     * Returns true if {encoding} is a valid encoding argument.
-     * Valid string encodings in Node 0.12: 'ascii'|'utf8'|'utf16le'|'ucs2'(alias of 'utf16le')|'base64'|'binary'(deprecated)|'hex'
-     *
-     * @param encoding string to test.
-     */
-    static isEncoding(encoding: string): boolean;
-    /**
-     * Gives the actual byte length of a string. encoding defaults to 'utf8'.
-     * This is not the same as String.prototype.length since that returns the number of characters in a string.
-     *
-     * @param string string to test.
-     * @param encoding encoding used to evaluate (defaults to 'utf8')
-     */
-    static byteLength(string: string, encoding?: string): number;
-    /**
-     * Returns a buffer which is the result of concatenating all the buffers in the list together.
-     *
-     * If the list has no items, or if the totalLength is 0, then it returns a zero-length buffer.
-     * If the list has exactly one item, then the first item of the list is returned.
-     * If the list has more than one item, then a new Buffer is created.
-     *
-     * @param list An array of Buffer objects to concatenate
-     * @param totalLength Total length of the buffers when concatenated.
-     *   If totalLength is not provided, it is read from the buffers in the list. However, this adds an additional loop to the function, so it is faster to provide the length explicitly.
-     */
-    static concat(list: Buffer[], totalLength?: number): Buffer;
-    /**
-     * The same as buf1.compare(buf2).
-     */
-    static compare(buf1: Buffer, buf2: Buffer): number;
-    /**
-     * Allocates a new buffer of {size} octets.
-     *
-     * @param size count of octets to allocate.
-     * @param fill if specified, buffer will be initialized by calling buf.fill(fill).
-     *    If parameter is omitted, buffer will be filled with zeros.
-     * @param encoding encoding used for call to buf.fill while initalizing
-     */
-    static alloc(size: number, fill?: string | Buffer | number, encoding?: string): Buffer;
-    /**
-     * Allocates a new buffer of {size} octets, leaving memory not initialized, so the contents
-     * of the newly created Buffer are unknown and may contain sensitive data.
-     *
-     * @param size count of octets to allocate
-     */
-    static allocUnsafe(size: number): Buffer;
-    /**
-     * Allocates a new non-pooled buffer of {size} octets, leaving memory not initialized, so the contents
-     * of the newly created Buffer are unknown and may contain sensitive data.
-     *
-     * @param size count of octets to allocate
-     */
-    static allocUnsafeSlow(size: number): Buffer;
+    stripBOM?: boolean;
+    /** Override the default endianness for `UTF-16` and `UTF-32` decodings. */
+    defaultEncoding?: "utf16be" | "utf32be";
   }
+
+  export interface EncodeOptions {
+    /**
+     * Add a Byte Order Mark (BOM) to the output, when encoding,
+     * if the codec is BOM-aware. @default false
+     */
+    addBOM?: boolean;
+    /** Override the default endianness for `UTF-32` encoding. */
+    defaultEncoding?: "utf32be";
+  }
+
+  export interface EncoderStream {
+    write(str: string): Buffer;
+    end(): Buffer | undefined;
+  }
+
+  export interface DecoderStream {
+    write(buf: Buffer): string;
+    end(): string | undefined;
+  }
+
+  export interface Codec {
+    encoder: new (options?: EncodeOptions, codec?: Codec) => EncoderStream;
+    decoder: new (options?: DecodeOptions, codec?: Codec) => DecoderStream;
+    bomAware?: boolean;
+    [key: string]: any;
+  }
+
+  /** Encodes a `string` into a `Buffer`, using the provided `encoding`. */
+  export function encode (content: string, encoding: Encoding, options?: EncodeOptions): Buffer
+
+  /** Decodes a `Buffer` into a `string`, using the provided `encoding`. */
+  export function decode (buffer: Buffer | Uint8Array, encoding: Encoding, options?: DecodeOptions): string
+
+  /** Checks if a given encoding is supported by `iconv-lite`. */
+  export function encodingExists (encoding: string): encoding is Encoding
+
+  /** Legacy alias for {@link iconv.encode}. */
+  export const toEncoding: typeof iconv.encode
+
+  /** Legacy alias for {@link iconv.decode}. */
+  export const fromEncoding: typeof iconv.decode
+
+  /** Creates a stream that decodes binary data from a given `encoding` into strings. */
+  export function decodeStream (encoding: Encoding, options?: DecodeOptions): NodeJS.ReadWriteStream
+
+  /** Creates a stream that encodes strings into binary data in a given `encoding`. */
+  export function encodeStream (encoding: Encoding, options?: EncodeOptions): NodeJS.ReadWriteStream
+
+  /**
+   * Explicitly enable Streaming API in browser environments by passing in:
+   * ```js
+   * require('stream')
+   * ```
+   * @example iconv.enableStreamingAPI(require('stream'));
+   */
+  export function enableStreamingAPI (stream_module: { Transform: typeof Stream.Transform }): void
+
+  /** Creates and returns a low-level encoder stream. */
+  export function getEncoder (encoding: Encoding, options?: EncodeOptions): EncoderStream
+
+  /** Creates and returns a low-level decoder stream. */
+  export function getDecoder (encoding: Encoding, options?: DecodeOptions): DecoderStream
+
+  /**
+   * Returns a codec object for the given `encoding`.
+   * @throws If the `encoding` is not recognized.
+   */
+  export function getCodec (encoding: Encoding): Codec
+
+  /** Strips all non-alphanumeric characters and appended year from `encoding`. */
+  export function _canonicalizeEncoding (encoding: Encoding): string
+
+  /** A cache of all loaded encoding definitions. */
+  export let encodings: Record<
+    Encoding,
+    | string
+    | {
+      type: string;
+      [key: string]: any;
+    }
+  > | null
+
+  /** A cache of initialized codec objects. */
+  export let _codecDataCache: Record<string, Codec>
+
+  /** The character used for untranslatable `Unicode` characters. @default "�" */
+  export let defaultCharUnicode: string
+
+  /** The character used for untranslatable `single-byte` characters. @default "?" */
+  export let defaultCharSingleByte: string
+
+  /**
+   * Skip deprecation warning when strings are used instead of Buffers during decoding.
+   * Note: {@link iconv.decode} converts the string to Buffer regardless.
+   */
+  export let skipDecodeWarning: boolean
+
+  /** @readonly Whether or not, Streaming API is enabled. */
+  export const supportsStreams: boolean
+
+  export type { iconv as Iconv, Encoding }
 }
+
+export = iconv

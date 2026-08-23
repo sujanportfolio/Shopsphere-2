@@ -1,176 +1,147 @@
-export const SYSTEM_NAMESPACE_COLLECTION = 'system.namespaces';
-export const SYSTEM_INDEX_COLLECTION = 'system.indexes';
-export const SYSTEM_PROFILE_COLLECTION = 'system.profile';
-export const SYSTEM_USER_COLLECTION = 'system.users';
-export const SYSTEM_COMMAND_COLLECTION = '$cmd';
-export const SYSTEM_JS_COLLECTION = 'system.js';
+/** @internal */
+export const BSON_MAJOR_VERSION = 7;
 
-// events
-export const ERROR = 'error' as const;
-export const TIMEOUT = 'timeout' as const;
-export const CLOSE = 'close' as const;
-export const OPEN = 'open' as const;
-export const CONNECT = 'connect' as const;
-export const CLOSED = 'closed' as const;
-export const ENDED = 'ended' as const;
-export const MESSAGE = 'message' as const;
-export const PINNED = 'pinned' as const;
-export const UNPINNED = 'unpinned' as const;
-export const DESCRIPTION_RECEIVED = 'descriptionReceived';
 /** @internal */
-export const SERVER_OPENING = 'serverOpening' as const;
-/** @internal */
-export const SERVER_CLOSED = 'serverClosed' as const;
-/** @internal */
-export const SERVER_DESCRIPTION_CHANGED = 'serverDescriptionChanged' as const;
-/** @internal */
-export const TOPOLOGY_OPENING = 'topologyOpening' as const;
-/** @internal */
-export const TOPOLOGY_CLOSED = 'topologyClosed' as const;
-/** @internal */
-export const TOPOLOGY_DESCRIPTION_CHANGED = 'topologyDescriptionChanged' as const;
-/** @internal */
-export const SERVER_SELECTION_STARTED = 'serverSelectionStarted' as const;
-/** @internal */
-export const SERVER_SELECTION_FAILED = 'serverSelectionFailed' as const;
-/** @internal */
-export const SERVER_SELECTION_SUCCEEDED = 'serverSelectionSucceeded' as const;
-/** @internal */
-export const WAITING_FOR_SUITABLE_SERVER = 'waitingForSuitableServer' as const;
-/** @internal */
-export const CONNECTION_POOL_CREATED = 'connectionPoolCreated' as const;
-/** @internal */
-export const CONNECTION_POOL_CLOSED = 'connectionPoolClosed' as const;
-/** @internal */
-export const CONNECTION_POOL_CLEARED = 'connectionPoolCleared' as const;
-/** @internal */
-export const CONNECTION_POOL_READY = 'connectionPoolReady' as const;
-/** @internal */
-export const CONNECTION_CREATED = 'connectionCreated' as const;
-/** @internal */
-export const CONNECTION_READY = 'connectionReady' as const;
-/** @internal */
-export const CONNECTION_CLOSED = 'connectionClosed' as const;
-/** @internal */
-export const CONNECTION_CHECK_OUT_STARTED = 'connectionCheckOutStarted' as const;
-/** @internal */
-export const CONNECTION_CHECK_OUT_FAILED = 'connectionCheckOutFailed' as const;
-/** @internal */
-export const CONNECTION_CHECKED_OUT = 'connectionCheckedOut' as const;
-/** @internal */
-export const CONNECTION_CHECKED_IN = 'connectionCheckedIn' as const;
-export const CLUSTER_TIME_RECEIVED = 'clusterTimeReceived' as const;
-/** @internal */
-export const COMMAND_STARTED = 'commandStarted' as const;
-/** @internal */
-export const COMMAND_SUCCEEDED = 'commandSucceeded' as const;
-/** @internal */
-export const COMMAND_FAILED = 'commandFailed' as const;
-/** @internal */
-export const SERVER_HEARTBEAT_STARTED = 'serverHeartbeatStarted' as const;
-/** @internal */
-export const SERVER_HEARTBEAT_SUCCEEDED = 'serverHeartbeatSucceeded' as const;
-/** @internal */
-export const SERVER_HEARTBEAT_FAILED = 'serverHeartbeatFailed' as const;
-export const RESPONSE = 'response' as const;
-export const MORE = 'more' as const;
-export const INIT = 'init' as const;
-export const CHANGE = 'change' as const;
-export const END = 'end' as const;
-export const RESUME_TOKEN_CHANGED = 'resumeTokenChanged' as const;
+export const BSON_VERSION_SYMBOL = Symbol.for('@@mdb.bson.version');
 
-/** @public */
-export const HEARTBEAT_EVENTS = Object.freeze([
-  SERVER_HEARTBEAT_STARTED,
-  SERVER_HEARTBEAT_SUCCEEDED,
-  SERVER_HEARTBEAT_FAILED
-] as const);
-
-/** @public */
-export const CMAP_EVENTS = Object.freeze([
-  CONNECTION_POOL_CREATED,
-  CONNECTION_POOL_READY,
-  CONNECTION_POOL_CLEARED,
-  CONNECTION_POOL_CLOSED,
-  CONNECTION_CREATED,
-  CONNECTION_READY,
-  CONNECTION_CLOSED,
-  CONNECTION_CHECK_OUT_STARTED,
-  CONNECTION_CHECK_OUT_FAILED,
-  CONNECTION_CHECKED_OUT,
-  CONNECTION_CHECKED_IN
-] as const);
-
-/** @public */
-export const TOPOLOGY_EVENTS = Object.freeze([
-  SERVER_OPENING,
-  SERVER_CLOSED,
-  SERVER_DESCRIPTION_CHANGED,
-  TOPOLOGY_OPENING,
-  TOPOLOGY_CLOSED,
-  TOPOLOGY_DESCRIPTION_CHANGED,
-  ERROR,
-  TIMEOUT,
-  CLOSE
-] as const);
-
-/** @public */
-export const APM_EVENTS = Object.freeze([
-  COMMAND_STARTED,
-  COMMAND_SUCCEEDED,
-  COMMAND_FAILED
-] as const);
+/** @internal */
+export const BSON_INT32_MAX = 0x7fffffff;
+/** @internal */
+export const BSON_INT32_MIN = -0x80000000;
+/** @internal */
+export const BSON_INT64_MAX = Math.pow(2, 63) - 1;
+/** @internal */
+export const BSON_INT64_MIN = -Math.pow(2, 63);
 
 /**
- * All events that we relay to the `Topology`
+ * Any integer up to 2^53 can be precisely represented by a double.
  * @internal
  */
-export const SERVER_RELAY_EVENTS = Object.freeze([
-  SERVER_HEARTBEAT_STARTED,
-  SERVER_HEARTBEAT_SUCCEEDED,
-  SERVER_HEARTBEAT_FAILED,
-  COMMAND_STARTED,
-  COMMAND_SUCCEEDED,
-  COMMAND_FAILED,
-  ...CMAP_EVENTS
-] as const);
+export const JS_INT_MAX = Math.pow(2, 53);
 
 /**
- * All events we listen to from `Server` instances, but do not forward to the client
+ * Any integer down to -2^53 can be precisely represented by a double.
  * @internal
  */
-export const LOCAL_SERVER_EVENTS = Object.freeze([
-  CONNECT,
-  DESCRIPTION_RECEIVED,
-  CLOSED,
-  ENDED
-] as const);
+export const JS_INT_MIN = -Math.pow(2, 53);
+
+/** Number BSON Type @internal */
+export const BSON_DATA_NUMBER = 1;
+
+/** String BSON Type @internal */
+export const BSON_DATA_STRING = 2;
+
+/** Object BSON Type @internal */
+export const BSON_DATA_OBJECT = 3;
+
+/** Array BSON Type @internal */
+export const BSON_DATA_ARRAY = 4;
+
+/** Binary BSON Type @internal */
+export const BSON_DATA_BINARY = 5;
+
+/** Binary BSON Type @internal */
+export const BSON_DATA_UNDEFINED = 6;
+
+/** ObjectId BSON Type @internal */
+export const BSON_DATA_OID = 7;
+
+/** Boolean BSON Type @internal */
+export const BSON_DATA_BOOLEAN = 8;
+
+/** Date BSON Type @internal */
+export const BSON_DATA_DATE = 9;
+
+/** null BSON Type @internal */
+export const BSON_DATA_NULL = 10;
+
+/** RegExp BSON Type @internal */
+export const BSON_DATA_REGEXP = 11;
+
+/** Code BSON Type @internal */
+export const BSON_DATA_DBPOINTER = 12;
+
+/** Code BSON Type @internal */
+export const BSON_DATA_CODE = 13;
+
+/** Symbol BSON Type @internal */
+export const BSON_DATA_SYMBOL = 14;
+
+/** Code with Scope BSON Type @internal */
+export const BSON_DATA_CODE_W_SCOPE = 15;
+
+/** 32 bit Integer BSON Type @internal */
+export const BSON_DATA_INT = 16;
+
+/** Timestamp BSON Type @internal */
+export const BSON_DATA_TIMESTAMP = 17;
+
+/** Long BSON Type @internal */
+export const BSON_DATA_LONG = 18;
+
+/** Decimal128 BSON Type @internal */
+export const BSON_DATA_DECIMAL128 = 19;
+
+/** MinKey BSON Type @internal */
+export const BSON_DATA_MIN_KEY = 0xff;
+
+/** MaxKey BSON Type @internal */
+export const BSON_DATA_MAX_KEY = 0x7f;
+
+/** Binary Default Type @internal */
+export const BSON_BINARY_SUBTYPE_DEFAULT = 0;
+
+/** Binary Function Type @internal */
+export const BSON_BINARY_SUBTYPE_FUNCTION = 1;
+
+/** Binary Byte Array Type @internal */
+export const BSON_BINARY_SUBTYPE_BYTE_ARRAY = 2;
+
+/** Binary Deprecated UUID Type @deprecated Please use BSON_BINARY_SUBTYPE_UUID_NEW @internal */
+export const BSON_BINARY_SUBTYPE_UUID = 3;
+
+/** Binary UUID Type @internal */
+export const BSON_BINARY_SUBTYPE_UUID_NEW = 4;
+
+/** Binary MD5 Type @internal */
+export const BSON_BINARY_SUBTYPE_MD5 = 5;
+
+/** Encrypted BSON type @internal */
+export const BSON_BINARY_SUBTYPE_ENCRYPTED = 6;
+
+/** Column BSON type @internal */
+export const BSON_BINARY_SUBTYPE_COLUMN = 7;
+
+/** Sensitive BSON type @internal */
+export const BSON_BINARY_SUBTYPE_SENSITIVE = 8;
+
+/** Binary User Defined Type @internal */
+export const BSON_BINARY_SUBTYPE_USER_DEFINED = 128;
 
 /** @public */
-export const MONGO_CLIENT_EVENTS = Object.freeze([
-  ...CMAP_EVENTS,
-  ...APM_EVENTS,
-  ...TOPOLOGY_EVENTS,
-  ...HEARTBEAT_EVENTS
-] as const);
+export const BSONType = Object.freeze({
+  double: 1,
+  string: 2,
+  object: 3,
+  array: 4,
+  binData: 5,
+  undefined: 6,
+  objectId: 7,
+  bool: 8,
+  date: 9,
+  null: 10,
+  regex: 11,
+  dbPointer: 12,
+  javascript: 13,
+  symbol: 14,
+  javascriptWithScope: 15,
+  int: 16,
+  timestamp: 17,
+  long: 18,
+  decimal: 19,
+  minKey: -1,
+  maxKey: 127
+} as const);
 
-/**
- * @internal
- * The legacy hello command that was deprecated in MongoDB 5.0.
- */
-export const LEGACY_HELLO_COMMAND = 'ismaster';
-
-/**
- * @internal
- * The legacy hello command that was deprecated in MongoDB 5.0.
- */
-export const LEGACY_HELLO_COMMAND_CAMEL_CASE = 'isMaster';
-
-// Typescript errors if we index objects with `Symbol.for(...)`, so
-// to avoid TS errors we pull them out into variables.  Then we can type
-// the objects (and class) that we expect to see them on and prevent TS
-// errors.
-/** @internal */
-export const kDecorateResult = Symbol.for('@@mdb.decorateDecryptionResult');
-/** @internal */
-export const kDecoratedKeys = Symbol.for('@@mdb.decryptedKeys');
+/** @public */
+export type BSONType = (typeof BSONType)[keyof typeof BSONType];
