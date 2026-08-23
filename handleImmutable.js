@@ -2,43 +2,49 @@
 
 const StrictModeError = require('../../error/strict');
 
-/**
- * Handle immutable option for a given path when casting updates based on options
- *
- * @param {SchemaType} schematype the resolved schematype for this path
- * @param {boolean | 'throw' | null} strict whether strict mode is set for this query
- * @param {object} obj the object containing the value being checked so we can delete
- * @param {string} key the key in `obj` which we are checking for immutability
- * @param {string} fullPath the full path being checked
- * @param {object} options the query options
- * @param {Query} ctx the query. Passed as `this` and first param to the `immutable` option, if `immutable` is a function
- * @returns {boolean} true if field was removed, false otherwise
+/*!
+ * ignore
  */
 
-module.exports = function handleImmutable(schematype, strict, obj, key, fullPath, options, ctx) {
-  if (!schematype?.options?.immutable) {
-    return false;
+module.exports = function(schematype) {
+  if (schematype.$immutable) {
+    schematype.$immutableSetter = createImmutableSetter(schematype.path,
+      schematype.options.immutable);
+    schematype.set(schematype.$immutableSetter);
+  } else if (schematype.$immutableSetter) {
+    schematype.setters = schematype.setters.
+      filter(fn => fn !== schematype.$immutableSetter);
+    delete schematype.$immutableSetter;
   }
-  let immutable = schematype.options.immutable;
-
-  if (typeof immutable === 'function') {
-    immutable = immutable.call(ctx, ctx);
-  }
-  if (!immutable) {
-    return false;
-  }
-
-  if (options?.overwriteImmutable) {
-    return false;
-  }
-  if (strict === false) {
-    return false;
-  }
-  if (strict === 'throw') {
-    throw new StrictModeError(null,
-      `Field ${fullPath} is immutable and strict = 'throw'`);
-  }
-
-  delete obj[key];
-  return true;
 };
+
+function createImmutableSetter(path, immutable) {
+  return function immutableSetter(v, _priorVal, _doc, options) {
+    if (this == null || this.$__ == null) {
+      return v;
+    }
+    if (this.isNew) {
+      return v;
+    }
+    if (options?.overwriteImmutable) {
+      return v;
+    }
+
+    const _immutable = typeof immutable === 'function' ?
+      immutable.call(this, this) :
+      immutable;
+    if (!_immutable) {
+      return v;
+    }
+
+    const _value = this.$__.priorDoc != null ?
+      this.$__.priorDoc.$__getValue(path) :
+      this.$__getValue(path);
+    if (this.$__.strictMode === 'throw' && v !== _value) {
+      throw new StrictModeError(path, 'Path `' + path + '` is immutable ' +
+        'and strict mode is set to throw.', true);
+    }
+
+    return _value;
+  };
+}
