@@ -1,65 +1,34 @@
 'use strict';
 
-/**
- * Simplified lodash.get to work around the annoying null quirk. See:
- * https://github.com/lodash/lodash/issues/3659
- * @api private
- */
+var test = require('tape');
 
-module.exports = function get(obj, path, def) {
-  let parts;
-  let isPathArray = false;
-  if (typeof path === 'string') {
-    if (path.indexOf('.') === -1) {
-      const _v = getProperty(obj, path);
-      if (_v == null) {
-        return def;
-      }
-      return _v;
-    }
+var getDunderProto = require('../get');
 
-    parts = path.split('.');
-  } else {
-    isPathArray = true;
-    parts = path;
+test('getDunderProto', { skip: !getDunderProto }, function (t) {
+	if (!getDunderProto) {
+		throw 'should never happen; this is just for type narrowing'; // eslint-disable-line no-throw-literal
+	}
 
-    if (parts.length === 1) {
-      const _v = getProperty(obj, parts[0]);
-      if (_v == null) {
-        return def;
-      }
-      return _v;
-    }
-  }
-  let rest = path;
-  let cur = obj;
-  for (const part of parts) {
-    if (cur == null) {
-      return def;
-    }
+	// @ts-expect-error
+	t['throws'](function () { getDunderProto(); }, TypeError, 'throws if no argument');
+	// @ts-expect-error
+	t['throws'](function () { getDunderProto(undefined); }, TypeError, 'throws with undefined');
+	// @ts-expect-error
+	t['throws'](function () { getDunderProto(null); }, TypeError, 'throws with null');
 
-    // `lib/cast.js` depends on being able to get dotted paths in updates,
-    // like `{ $set: { 'a.b': 42 } }`
-    if (!isPathArray && cur[rest] != null) {
-      return cur[rest];
-    }
+	t.equal(getDunderProto({}), Object.prototype);
+	t.equal(getDunderProto([]), Array.prototype);
+	t.equal(getDunderProto(function () {}), Function.prototype);
+	t.equal(getDunderProto(/./g), RegExp.prototype);
+	t.equal(getDunderProto(42), Number.prototype);
+	t.equal(getDunderProto(true), Boolean.prototype);
+	t.equal(getDunderProto('foo'), String.prototype);
 
-    cur = getProperty(cur, part);
+	t.end();
+});
 
-    if (!isPathArray) {
-      rest = rest.substring(part.length + 1);
-    }
-  }
+test('no dunder proto', { skip: !!getDunderProto }, function (t) {
+	t.notOk('__proto__' in Object.prototype, 'no __proto__ in Object.prototype');
 
-  return cur == null ? def : cur;
-};
-
-function getProperty(obj, prop) {
-  if (obj == null) {
-    return obj;
-  }
-  if (obj instanceof Map) {
-    return obj.get(prop);
-  }
-  return obj[prop];
-}
+	t.end();
+});

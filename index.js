@@ -1,15 +1,22 @@
 'use strict';
 
-var bind = require('function-bind');
-var $TypeError = require('es-errors/type');
+var test = require('tape');
+var hasSymbols = require('../');
+var runSymbolTests = require('./tests');
 
-var $call = require('./functionCall');
-var $actualApply = require('./actualApply');
+test('interface', function (t) {
+	t.equal(typeof hasSymbols, 'function', 'is a function');
+	t.equal(typeof hasSymbols(), 'boolean', 'returns a boolean');
+	t.end();
+});
 
-/** @type {(args: [Function, thisArg?: unknown, ...args: unknown[]]) => Function} TODO FIXME, find a way to use import('.') */
-module.exports = function callBindBasic(args) {
-	if (args.length < 1 || typeof args[0] !== 'function') {
-		throw new $TypeError('a function is required');
-	}
-	return $actualApply(bind, $call, args);
-};
+test('Symbols are supported', { skip: !hasSymbols() }, function (t) {
+	runSymbolTests(t);
+	t.end();
+});
+
+test('Symbols are not supported', { skip: hasSymbols() }, function (t) {
+	t.equal(typeof Symbol, 'undefined', 'global Symbol is undefined');
+	t.equal(typeof Object.getOwnPropertySymbols, 'undefined', 'Object.getOwnPropertySymbols does not exist');
+	t.end();
+});
